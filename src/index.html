@@ -1,0 +1,227 @@
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" crossorigin="anonymous">
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/es6-promise/4.1.1/es6-promise.auto.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/16.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/16.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-router/4.2.0/react-router.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-router-dom/4.2.2/react-router-dom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-router-redux/4.0.8/ReactRouterRedux.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/redux/3.7.2/redux.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/redux-thunk/2.2.0/redux-thunk.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-redux/5.0.6/react-redux.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/redux-form/7.2.3/redux-form.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.17.1/axios.min.js"></script>
+  <script src="https://unpkg.com/axios-mock-adapter/dist/axios-mock-adapter.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.5/lodash.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/recompose/0.26.0/Recompose.min.js"></script>
+  
+  <style>
+    .error {
+      color: firebrick
+    }
+  </style>
+</head>
+<body>
+<div id="app"></div>
+<script type="text/babel">
+
+    const {compose, withState, withHandlers} = Recompose
+
+    const mock = new AxiosMockAdapter(axios, {delayResponse: 2000})
+    mock.onGet('/users').reply(200, {
+        entries: [
+            {id: 1, name: 'Müller'},
+            {id: 2, name: 'Schmidt'}
+        ]
+    })
+
+    const INC = 'INC'
+    const DEC = 'DEC'
+    const REQUEST_LIST = 'REQUEST_LIST'
+    const RECEIVE_LIST_SUCCESS = 'RECEIVE_LIST_SUCCESS'
+    const RECEIVE_LIST_FAILURE = 'RECEIVE_LIST_FAILURE'
+
+    const initialState = {
+        counter: 42,
+        loading: false,
+        myRows: null
+    }
+
+    const myReducers = function (state = initialState, action) {
+        switch (action.type) {
+            case INC:
+                return Object.assign({}, state, {counter: state.counter + 1})
+            case DEC:
+                return Object.assign({}, state, {counter: state.counter - 1})
+            case REQUEST_LIST:
+                return Object.assign({}, state, {loading: true})
+            case RECEIVE_LIST_SUCCESS:
+                return Object.assign({}, state, {loading: false, myRows: action.data.entries})
+            case RECEIVE_LIST_FAILURE:
+                return Object.assign({}, state, {loading: false, error: action.error, myRows: []})
+            default:
+                return state
+        }
+    }
+
+    const reducer = Redux.combineReducers({
+        main: myReducers,
+        form: ReduxForm.reducer
+    })
+
+    const store = Redux.createStore(reducer,
+        Redux.applyMiddleware(ReduxThunk.default)
+    )
+
+    const mapStateToProps = (state) => {
+        return {
+            counter: state.main.counter
+        }
+    }
+
+    const mapDispatchToProps = (dispatch) => {
+        return {
+            onInc () {
+                dispatch({type: INC})
+            },
+            onDec () {
+                dispatch({type: DEC})
+            }
+        }
+    }
+
+    const Schalala = ReactRedux.connect(mapStateToProps, mapDispatchToProps)(({counter, onInc, onDec}) => (
+        <p>Schalala! {counter}
+          <button onClick={onInc}>+</button>
+          <button onClick={onDec}>-</button>
+        </p>
+    ))
+
+    const renderField = ({input, meta, placeholder}) => (
+        <div className="input-row">
+          <input {...input} type="text" placeholder={placeholder}/>
+            {meta.touched && meta.error &&
+            <span className="error">{meta.error}</span>}
+        </div>
+    )
+
+    const required = value => value ? undefined : 'Required'
+
+    const SimpleForm = ReactRedux.connect(state => ({
+            initialValues: {vorname: 'Max'}  //state.account.data // pull initial values from account reducer
+        }), (dispatch) => ({
+            load () {
+                dispatch(ReduxForm.initialize('simple', {vorname: 'Anton'}))
+            }
+        }),
+    )(ReduxForm.reduxForm({form: 'simple'})(({handleSubmit, pristine, reset, submitting, load}) => (
+        <form onSubmit={handleSubmit}>
+          <div>
+            <label>Vorname</label>
+            <div><ReduxForm.Field name="vorname" component={renderField} placeholder="Vorname" validate={[required] }/></div>
+          </div>
+          <button type="submit">Speichern</button>
+          <button type="button" onClick={load}>laden</button>
+        </form>
+    )))
+
+    function submit(values) {
+        console.log('submit', values)
+    }
+
+    const LoadingIndicator = ({loading}) => {
+        if (loading) return <div><img src="dashinfinity.gif"/></div>
+        return null
+    }
+
+    const MyRow = ({row}) => (
+        <tr key={row.id}>
+          <td>{row.name}</td>
+          <td>---</td>
+        </tr>
+    )
+
+    let MyList = ({rows, load, loading, error}) => {
+        const errDisplay = error ? <div className="error">{error.message}</div> : null
+
+        return (
+            <div>
+              <LoadingIndicator loading={loading}/>
+              <button onClick={load}>Laden</button>
+              <table className="table">
+                <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>blubb</th>
+                </tr>
+                </thead>
+                <tbody>
+                {(rows || []).map(row => MyRow({row})) }
+                </tbody>
+              </table>
+                {errDisplay}
+            </div>
+        );
+    }
+
+    MyList = ReactRedux.connect(
+        state => ({
+            rows: state.main.myRows,
+            loading: state.main.loading,
+            error: state.main.error
+        }),
+        dispatch => ({
+                load () {
+                    dispatch({type: REQUEST_LIST})
+                    dispatch(function (dispatch) {
+                        return axios.get('/users')
+                            .then(response => dispatch({type: RECEIVE_LIST_SUCCESS, data: response.data}))
+                            .catch(error => dispatch({type: RECEIVE_LIST_FAILURE, error}))
+                    })
+                }
+            }
+        ))(MyList)
+
+    const enhance = compose(
+        withState('count', 'updateCount', 0),
+        withHandlers({
+            increment: props => () => props.updateCount(n => n + 1),
+            decrement: props => () => props.updateCount(n => n - 1)
+        })
+    )
+
+    const Counter = enhance(({count, increment, decrement}) =>
+        <div>
+          Count: {count}
+          <div>
+            <button onClick={increment}>+</button>
+            <button onClick={decrement}>-</button>
+          </div>
+        </div>
+    )
+
+    const options = [
+        {value: 'one', label: 'One'},
+        {value: 'two', label: 'Two'}
+    ];
+
+    ReactDOM.render(
+        <ReactRedux.Provider store={store}>
+          <div>
+            <Schalala/>
+            <Counter/>
+            <SimpleForm onSubmit={submit}/>
+            <MyList/>
+          </div>
+        </ReactRedux.Provider>,
+        document.getElementById('app')
+    );
+</script>
+</body>
+</html>
