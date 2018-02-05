@@ -49,8 +49,11 @@
     const REQUEST_LIST = 'REQUEST_LIST'
     const RECEIVE_LIST_SUCCESS = 'RECEIVE_LIST_SUCCESS'
     const RECEIVE_LIST_FAILURE = 'RECEIVE_LIST_FAILURE'
+    const LOGOUT = 'LOGOUT'
+    const LOGIN = 'LOGIN'
 
     const initialState = {
+        accessToken: 'xxxx',
         counter: 42,
         loading: false,
         myRows: null
@@ -68,6 +71,10 @@
                 return Object.assign({}, state, {loading: false, myRows: action.data.entries})
             case RECEIVE_LIST_FAILURE:
                 return Object.assign({}, state, {loading: false, error: action.error, myRows: []})
+            case LOGOUT:
+                return Object.assign({}, state, {accessToken: null})
+            case LOGIN:
+                return Object.assign({}, state, {accessToken: 'asdasdasd'})
             default:
                 return state
         }
@@ -104,6 +111,19 @@
           <button onClick={onInc}>+</button>
           <button onClick={onDec}>-</button>
         </p>
+    ))
+    
+    const LogInOutButton = ReactRedux.connect((state) => {
+        return {at: state.main.accessToken}
+      }, (dispatch) => {
+        return {
+          handle (v) {
+            if (v) return dispatch({type: LOGOUT})
+            return dispatch({type: LOGIN})
+          }
+        }
+      })(({at, handle}) => (
+      <button onClick={() => {handle(at)}}>LogInOut ({at})</button>
     ))
 
     const renderField = ({input, meta, placeholder}) => (
@@ -229,6 +249,10 @@
               <SimpleForm onSubmit={submit}/>
               <hr/>
               <button onClick={() => {console.log(store.getState())}}>Dump state</button>
+              <LogInOutButton />
+              <p>
+              Lorem Ipsum {store.getState().main.accessToken} [in dieser Lösung wird der Wert bei Änderung *nicht* aktualisiert]
+              </p>
             </div>
           </ReactRouterDOM.HashRouter>
         </ReactRedux.Provider>,
