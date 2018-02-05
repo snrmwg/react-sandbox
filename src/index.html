@@ -51,6 +51,7 @@
     const RECEIVE_LIST_FAILURE = 'RECEIVE_LIST_FAILURE'
     const LOGOUT = 'LOGOUT'
     const LOGIN = 'LOGIN'
+    const DUMP_STATE = 'DUMP_STATE'
 
     const initialState = {
         accessToken: 'xxxx',
@@ -75,6 +76,9 @@
                 return Object.assign({}, state, {accessToken: null})
             case LOGIN:
                 return Object.assign({}, state, {accessToken: 'asdasdasd'})
+            case DUMP_STATE:
+                console.log('STATE', state)
+                return state
             default:
                 return state
         }
@@ -113,16 +117,17 @@
         </p>
     ))
     
-    const LogInOutButton = ReactRedux.connect((state) => {
-        return {at: state.main.accessToken}
-      }, (dispatch) => {
-        return {
+    const LogInOutButton = ReactRedux.connect(
+        state => ({
+          at: state.main.accessToken
+        }), 
+        dispatch => ({
           handle (v) {
             if (v) return dispatch({type: LOGOUT})
             return dispatch({type: LOGIN})
           }
-        }
-      })(({at, handle}) => (
+        })
+      )(({at, handle}) => (
       <button onClick={() => {handle(at)}}>LogInOut ({at})</button>
     ))
 
@@ -190,7 +195,7 @@
               </table>
                 {errDisplay}
             </div>
-        );
+        )
     }
 
     const MyList = ReactRedux.connect(
@@ -233,31 +238,47 @@
       return <div><h2>Bye.</h2></div>
     }
     
+    const App = ReactRedux.connect(
+        state => ({
+          accessToken: state.main.accessToken
+        }), 
+        dispatch => ({
+          dumpState () {
+            return dispatch({type: DUMP_STATE})
+          }
+        })
+      )(({accessToken, dumpState}) => {
+        if (accessToken)
+          return (
+            <ReactRouterDOM.HashRouter>
+              <div>
+                <ul className="nav nav-tabs">
+                  <li><ReactRouterDOM.NavLink exact to="/">Home</ReactRouterDOM.NavLink></li>
+                  <li><ReactRouterDOM.NavLink to="/counter">Counter</ReactRouterDOM.NavLink></li>
+                  <li><ReactRouterDOM.NavLink to="/mylist">my list</ReactRouterDOM.NavLink></li>
+                </ul>
+                <ReactRouter.Route exact path="/" component={Schalala}/>
+                <ReactRouter.Route path="/counter" component={Counter}/>
+                <ReactRouter.Route path="/mylist" component={MyList}/>
+                <ReactRouter.Route path="/logout" component={Logout}/>
+                <SimpleForm onSubmit={submit}/>
+                <hr/>
+                <button onClick={dumpState}>Dump state</button>
+                <LogInOutButton />
+                <p>
+                Lorem Ipsum {accessToken}
+                </p>
+              </div>
+            </ReactRouterDOM.HashRouter>
+          )
+        return <LogInOutButton />
+      })
     ReactDOM.render(
         <ReactRedux.Provider store={store}>
-          <ReactRouterDOM.HashRouter>
-            <div>
-              <ul className="nav nav-tabs">
-                <li><ReactRouterDOM.NavLink exact to="/">Home</ReactRouterDOM.NavLink></li>
-                <li><ReactRouterDOM.NavLink to="/counter">Counter</ReactRouterDOM.NavLink></li>
-                <li><ReactRouterDOM.NavLink to="/mylist">my list</ReactRouterDOM.NavLink></li>
-              </ul>
-              <ReactRouter.Route exact path="/" component={Schalala}/>
-              <ReactRouter.Route path="/counter" component={Counter}/>
-              <ReactRouter.Route path="/mylist" component={MyList}/>
-              <ReactRouter.Route path="/logout" component={Logout}/>
-              <SimpleForm onSubmit={submit}/>
-              <hr/>
-              <button onClick={() => {console.log(store.getState())}}>Dump state</button>
-              <LogInOutButton />
-              <p>
-              Lorem Ipsum {store.getState().main.accessToken} [in dieser Lösung wird der Wert bei Änderung *nicht* aktualisiert]
-              </p>
-            </div>
-          </ReactRouterDOM.HashRouter>
+          <App/>
         </ReactRedux.Provider>,
         document.getElementById('app')
-    );
+    )
 </script>
 </body>
 </html>
