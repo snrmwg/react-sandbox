@@ -7,11 +7,11 @@
   
   <script src="https://cdnjs.cloudflare.com/ajax/libs/es6-promise/4.1.1/es6-promise.auto.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/16.2.0/umd/react.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/16.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-router/4.2.0/react-router.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-router-dom/4.2.2/react-router-dom.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-router-redux/4.0.8/ReactRouterRedux.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/16.2.0/umd/react.development.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/16.2.0/umd/react-dom.development.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-router/4.2.0/react-router.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-router-dom/4.2.2/react-router-dom.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-router-redux/4.0.8/ReactRouterRedux.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/redux/3.7.2/redux.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/redux-thunk/2.2.0/redux-thunk.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-redux/5.0.6/react-redux.min.js"></script>
@@ -24,6 +24,9 @@
   <style>
     .error {
       color: firebrick
+    }
+    ul.nav li a.active {
+      font-weight: bold;
     }
   </style>
 </head>
@@ -136,7 +139,7 @@
     }
 
     const LoadingIndicator = ({loading}) => {
-        if (loading) return <div><img src="dashinfinity.gif"/></div>
+        if (loading) return <div><img src="/dashinfinity.gif"/></div>
         return null
     }
 
@@ -147,7 +150,7 @@
         </tr>
     )
 
-    let MyList = ({rows, load, loading, error}) => {
+    const MyListInner = ({rows, load, loading, error}) => {
         const errDisplay = error ? <div className="error">{error.message}</div> : null
 
         return (
@@ -170,7 +173,7 @@
         );
     }
 
-    MyList = ReactRedux.connect(
+    const MyList = ReactRedux.connect(
         state => ({
             rows: state.main.myRows,
             loading: state.main.loading,
@@ -186,7 +189,7 @@
                     })
                 }
             }
-        ))(MyList)
+        ))(MyListInner)
 
     const enhance = compose(
         withState('count', 'updateCount', 0),
@@ -206,19 +209,28 @@
         </div>
     )
 
-    const options = [
-        {value: 'one', label: 'One'},
-        {value: 'two', label: 'Two'}
-    ];
-
+    const Logout = () => {
+      return <div><h2>Bye.</h2></div>
+    }
+    
     ReactDOM.render(
         <ReactRedux.Provider store={store}>
-          <div>
-            <Schalala/>
-            <Counter/>
-            <SimpleForm onSubmit={submit}/>
-            <MyList/>
-          </div>
+          <ReactRouterDOM.HashRouter>
+            <div>
+              <ul className="nav nav-tabs">
+                <li><ReactRouterDOM.NavLink exact to="/">Home</ReactRouterDOM.NavLink></li>
+                <li><ReactRouterDOM.NavLink to="/counter">Counter</ReactRouterDOM.NavLink></li>
+                <li><ReactRouterDOM.NavLink to="/mylist">my list</ReactRouterDOM.NavLink></li>
+              </ul>
+              <ReactRouter.Route exact path="/" component={Schalala}/>
+              <ReactRouter.Route path="/counter" component={Counter}/>
+              <ReactRouter.Route path="/mylist" component={MyList}/>
+              <ReactRouter.Route path="/logout" component={Logout}/>
+              <SimpleForm onSubmit={submit}/>
+              <hr/>
+              <button onClick={() => {console.log(store.getState())}}>Dump state</button>
+            </div>
+          </ReactRouterDOM.HashRouter>
         </ReactRedux.Provider>,
         document.getElementById('app')
     );
